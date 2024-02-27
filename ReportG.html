@@ -739,10 +739,10 @@ anova(logi_model, test = &quot;Chisq&quot;)</code></pre>
 <p>The full model is significantly better than the null model, but some
 of the variables are not statistically significant, except for glucose,
 for which the level 1 is not significant while the level 2 is, but it’s
-negatively correlated with the target variable. This looks like a
-selection bias problem: it’s likely that people with very high glucose
-levels have diabetes, so it’s possible that it’s a spurious
-relationship.</p>
+negatively correlated with the target variable, but the coefficient is
+negative, which is contrary to known medical research. We therefore
+hypothesize that the glucose variable has a spurious relationship with
+the target variable, and we will thus drop it from the model.</p>
 <pre class="r"><code># Drop the gender1 and the gluc1 columns and make a copy
 df_logi_2 &lt;- df_logi %&gt;% select(-gender, -gluc)
 
