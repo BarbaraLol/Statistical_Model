@@ -127,13 +127,14 @@ The cleaned dataset contains 68,000 observations and 13 variables. The target va
 Let's now proceed with the exploratory data analysis (EDA) to better understand the distribution of the variables and their relationships with the target variable. The R code is for illustrative purposes only, the plots have been obtained in Python and are displayed below.
 
 ```{r dataset_analysis_plots, echo=TRUE}
-knitr::include_graphics("./numerical_distributions.png")
-knitr::include_graphics("./categorical_distributions.png")
+knitr::include_graphics("./numerical_variables.png")
+knitr::include_graphics("./categorical_variables.png")
+
 ```
 
-```{r dataset_analysis, echo=FALSE, include=TRUE}
+```{r dataset_analysis, eval=FALSE, echo=TRUE}
 # Create a copy of the cleaned dataset to use for EDA
-df_eda <- df
+df <- df
 
 #########################
 ## Numerical Variables ##
@@ -143,13 +144,13 @@ df_eda <- df
 par(mfrow=c(2, 2), mar=c(5, 4, 4, 2) + 0.1, oma=c(0, 0, 2, 0))
 
 # Create histograms for the numerical variables
-hist(df_eda$age, breaks=seq(min(df_eda$age), max(df_eda$age) + 1.5, by=1.5), col='lightblue', main='Age Distribution', xlab='Age')
+hist(df$age, breaks=seq(min(df$age), max(df$age) + 1.5, by=1.5), col='lightblue', main='Age Distribution', xlab='Age')
 
-hist(df_eda$height, breaks=seq(min(df_eda$height), max(df_eda$height) + 2, by=2), col='lightblue', main='Height Distribution', xlab='Height')
+hist(df$height, breaks=seq(min(df$height), max(df$height) + 2, by=2), col='lightblue', main='Height Distribution', xlab='Height')
 
-hist(df_eda$weight, breaks=seq(min(df_eda$weight), max(df_eda$weight) + 3, by=3), col='lightblue', main='Weight Distribution', xlab='Weight')
+hist(df$weight, breaks=seq(min(df$weight), max(df$weight) + 3, by=3), col='lightblue', main='Weight Distribution', xlab='Weight')
 
-hist(df_eda$BMI, breaks=seq(min(df_eda$BMI), max(df_eda$BMI) + 1, by=1), col='lightblue', main='BMI Distribution', xlab='BMI')
+hist(df$BMI, breaks=seq(min(df$BMI), max(df$BMI) + 1, by=1), col='lightblue', main='BMI Distribution', xlab='BMI')
 
 # Add a title to the plots
 mtext("Numeric Variables", outer=TRUE, cex=1.5)
@@ -162,31 +163,47 @@ mtext("Numeric Variables", outer=TRUE, cex=1.5)
 par(mfrow=c(2, 3), mar=c(5, 4, 4, 2) + 0.1, oma=c(0, 0, 2, 0))
 
 # Create bar plots for the categorical variables
-barplot(table(df_eda$gender), col='lightblue', main='Gender Distribution', xlab='Gender')
+barplot(table(df$gender), col='lightblue', main='Gender Distribution', xlab='Gender')
 
-barplot(table(df_eda$cholesterol), col='lightblue', main='Cholesterol Distribution', xlab='Cholesterol')
+barplot(table(df$cholesterol), col='lightblue', main='Cholesterol Distribution', xlab='Cholesterol')
 
-barplot(table(df_eda$gluc), col='lightblue', main='Glucose Distribution', xlab='Glucose')
+barplot(table(df$gluc), col='lightblue', main='Glucose Distribution', xlab='Glucose')
 
-barplot(table(df_eda$smoke), col='lightblue', main='Smoking Distribution', xlab='Smoking')
+barplot(table(df$smoke), col='lightblue', main='Smoking Distribution', xlab='Smoking')
 
-barplot(table(df_eda$alco), col='lightblue', main='Alcohol Consumption Distribution', xlab='Alcohol Consumption')
+barplot(table(df$alco), col='lightblue', main='Alcohol Consumption Distribution', xlab='Alcohol Consumption')
 
-barplot(table(df_eda$active), col='lightblue', main='Physical Activity Distribution', xlab='Physical Activity')
+barplot(table(df$active), col='lightblue', main='Physical Activity Distribution', xlab='Physical Activity')
 
 # Add a title to the plots
 mtext("Categorical Variables", outer=TRUE, cex=1.5)
 ```
 
-```{r EDA, echo=TRUE}
+Now the distributions by target variable:
+```{r dataset_analysis_target, eval=TRUE, echo=TRUE}
+
+knitr::include_graphics("./numerical_distributions.png")
+knitr::include_graphics("./categorical_distributions.png")
+```
+
+According to the distributions, we can see that the difference between the distributions of the height is entirely identical between the two classes, while a difference exists for the other numerical variables. We'll eliminate the height variable from the analysis.  
+For the categorical variables, we can see that the distributions are fairly different for some of the variables, but it's hard to evaluate if the observed differences are given by an actual relationship or just by chance. We'll proceed with the analysis to better understand the relationships between the variables and the target variable, after plotting the correlation matrix.
+
+```{r corr_matrix, eval=FALSE, echo=TRUE}
+
+knitr::include_graphics("./heat_matrix.png")
+
+```
+
+```{r EDA, eval=FALSE, echo=TRUE}
 
 ########################
 ## CORRELATION MATRIX ##
 ########################
 
-# Assuming df_eda is your dataframe
+# Assuming df is your dataframe
 # Filter out non-numeric columns
-df_numeric <- df_eda %>% select_if(is.numeric)
+df_numeric <- df %>% select_if(is.numeric)
 
 # Calculate the correlation matrix on the numeric dataframe
 cor_matrix <- cor(df_numeric) %>% as.matrix()
@@ -211,26 +228,29 @@ heatmap(cor_matrix,
 par(mfrow=c(3, 3), mar=c(5, 4, 4, 2) + 0.1, oma=c(0, 0, 2, 0))
 
 # Create histograms for the numerical variables
-hist(df_eda$age[df_eda$cardio == 0], col='lightblue', main='Age Distribution \n by Cardiovascular Disease (No)', xlab='Age', breaks=seq(min(df_eda$age), max(df_eda$age) + 1.5, by=1.5), xlim=c(min(df_eda$age), max(df_eda$age) + 1.5))
+hist(df$age[df$cardio == 0], col='lightblue', main='Age Distribution \n by Cardiovascular Disease (No)', xlab='Age', breaks=seq(min(df$age), max(df$age) + 1.5, by=1.5), xlim=c(min(df$age), max(df$age) + 1.5))
 
-hist(df_eda$age[df_eda$cardio == 1], col='lightcoral', main='Age Distribution \n by Cardiovascular Disease (Yes)', xlab='Age', breaks=seq(min(df_eda$age), max(df_eda$age) + 1.5, by=1.5), xlim=c(min(df_eda$age), max(df_eda$age) + 1.5))
+hist(df$age[df$cardio == 1], col='lightcoral', main='Age Distribution \n by Cardiovascular Disease (Yes)', xlab='Age', breaks=seq(min(df$age), max(df$age) + 1.5, by=1.5), xlim=c(min(df$age), max(df$age) + 1.5))
 
-hist(df_eda$height[df_eda$cardio == 0], col='lightblue', main='Height Distribution \n by Cardiovascular Disease (No)', xlab='Height', breaks=seq(min(df_eda$height), max(df_eda$height) + 2, by=2), xlim=c(min(df_eda$height), max(df_eda$height) + 2))
+hist(df$height[df$cardio == 0], col='lightblue', main='Height Distribution \n by Cardiovascular Disease (No)', xlab='Height', breaks=seq(min(df$height), max(df$height) + 2, by=2), xlim=c(min(df$height), max(df$height) + 2))
 
-hist(df_eda$height[df_eda$cardio == 1], col='lightcoral', main='Height Distribution \n by Cardiovascular Disease (Yes)', xlab='Height', breaks=seq(min(df_eda$height), max(df_eda$height) + 2, by=2), xlim=c(min(df_eda$height), max(df_eda$height) + 2))
+hist(df$height[df$cardio == 1], col='lightcoral', main='Height Distribution \n by Cardiovascular Disease (Yes)', xlab='Height', breaks=seq(min(df$height), max(df$height) + 2, by=2), xlim=c(min(df$height), max(df$height) + 2))
 
-hist(df_eda$weight[df_eda$cardio == 0], col='lightblue', main='Weight Distribution \n by Cardiovascular Disease (No)', xlab='Weight', breaks=seq(min(df_eda$weight), max(df_eda$weight) + 3, by=3), xlim=c(min(df_eda$weight), max(df_eda$weight) + 3))
+hist(df$weight[df$cardio == 0], col='lightblue', main='Weight Distribution \n by Cardiovascular Disease (No)', xlab='Weight', breaks=seq(min(df$weight), max(df$weight) + 3, by=3), xlim=c(min(df$weight), max(df$weight) + 3))
 
-hist(df_eda$weight[df_eda$cardio == 1], col='lightcoral', main='Weight Distribution \n by Cardiovascular Disease (Yes)', xlab='Weight', breaks=seq(min(df_eda$weight), max(df_eda$weight) + 3, by=3), xlim=c(min(df_eda$weight), max(df_eda$weight) + 3))
+hist(df$weight[df$cardio == 1], col='lightcoral', main='Weight Distribution \n by Cardiovascular Disease (Yes)', xlab='Weight', breaks=seq(min(df$weight), max(df$weight) + 3, by=3), xlim=c(min(df$weight), max(df$weight) + 3))
 
-hist(df_eda$BMI[df_eda$cardio == 0], col='lightblue', main='BMI Distribution \n by Cardiovascular Disease (No)', xlab='BMI', breaks=seq(min(df_eda$BMI), max(df_eda$BMI) + 1, by=1), xlim=c(min(df_eda$BMI), max(df_eda$BMI) + 1))
+hist(df$BMI[df$cardio == 0], col='lightblue', main='BMI Distribution \n by Cardiovascular Disease (No)', xlab='BMI', breaks=seq(min(df$BMI), max(df$BMI) + 1, by=1), xlim=c(min(df$BMI), max(df$BMI) + 1))
 
-hist(df_eda$BMI[df_eda$cardio == 1], col='lightcoral', main='BMI Distribution \n by Cardiovascular Disease (Yes)', xlab='BMI', breaks=seq(min(df_eda$BMI), max(df_eda$BMI) + 1, by=1), xlim=c(min(df_eda$BMI), max(df_eda$BMI) + 1))
+hist(df$BMI[df$cardio == 1], col='lightcoral', main='BMI Distribution \n by Cardiovascular Disease (Yes)', xlab='BMI', breaks=seq(min(df$BMI), max(df$BMI) + 1, by=1), xlim=c(min(df$BMI), max(df$BMI) + 1))
 
 # Add a title to the plots
 mtext("Numerical Variables", outer=TRUE, cex=1.5)
 
 ```
+
+
+
 
 ```{r VIF, echo=TRUE}
 df_vif <- df
