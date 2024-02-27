@@ -16,6 +16,8 @@ library(ROCR)
 library(gridExtra)
 library(DiagrammeR)
 library(dplyr)
+library(rpart)
+library(rpart.plot)
 
 # Define likelihood_ratio_test function
 likelihood_ratio_test <- function(full_model, null_model) {
@@ -442,99 +444,108 @@ LR_statistic_p_val <- likelihood_ratio_test(full_model, nested_model)
 print(paste('Likelihood Ratio statistic:', LR_statistic_p_val))
 
 print(paste('p-value:', LR_statistic_p_val[2]))
-accuracy_value <- generics::accuracy(full_model, df_regression)
+# accuracy_value <- generics::accuracy(full_model, df_regression)
 
-print(paste("FULL MODEL accuracy:", accuracy_value))
+# print(paste("FULL MODEL accuracy:", accuracy_value))
 
-accuracy_value <- accuracy(nested_model, nested_model)
-print("NESTED MODEL accuracy", accuracy_value)
+# accuracy_value <- accuracy(nested_model, nested_model)
+# print("NESTED MODEL accuracy", accuracy_value)
 ```
 
 ```{r echo=TRUE}
 print("NESTED MODEL WITHOUT GENDER VS NESTED MODEL")
 
-LR_statistic_p_val <- likelihood_ratio_test(nested_model, nested_model_no_gender)
+# LR_statistic_p_val <- likelihood_ratio_test(nested_model, nested_model_no_gender)
 
 print(paste('Likelihood Ratio statistic:', LR_statistic_p_val[1]))
 
 print(paste('p-value:', LR_statistic_p_val[2]))
 
-print("NESTED MODEL accuracy", accuracy(nested_model, nested_model))
+# print("NESTED MODEL accuracy", accuracy(nested_model, nested_model))
 
-print("NESTED MODEL WITHOUT Gender accuracy", accuracy(nested_model_no_gender, nested_model_no_gender))
+# print("NESTED MODEL WITHOUT Gender accuracy", accuracy(nested_model_no_gender, nested_model_no_gender))
 
 ```
 
 ```{r echo=TRUE}
 
 print("ALTERNATIVE NESTED MODEL VS NESTED MODEL")
-LR_statistic_p_val <- likelihood_ratio_test(nested_model_alt, nested_model)
+# LR_statistic_p_val <- likelihood_ratio_test(nested_model_alt, nested_model)
 print(paste('Likelihood Ratio statistic:', LR_statistic_p_val[1]))
 print(paste('p-value:', LR_statistic_p_val[2]))
-print("NESTED MODEL accuracy", accuracy(nested_model, nested_model))
-print("ALTERNATIVE NESTED MODEL accuracy", accuracy(nested_model_alt, nested_model_alt))
+# print("NESTED MODEL accuracy", accuracy(nested_model, nested_model))
+# print("ALTERNATIVE NESTED MODEL accuracy", accuracy(nested_model_alt, nested_model_alt))
 
 ```
 
-## Decision tree
-
+## Tree
 ```{r echo=TRUE}
-# Split the data into features and labels
-y_label <- "cardio"
-X_labels <- setdiff(names(df), y_label)
+df_tree<-df
+# Assuming the preliminary steps are the same, including data preparation and train-test split
 
-# Train-test split
-set.seed(42) # The answer to everything
-trainIndex <- createDataPartition(df[[y_label]], p = .8, 
-                                  list = FALSE, 
-                                  times = 1)
-X_train <- df[trainIndex, X_labels]
-y_train <- df[trainIndex, y_label]
-X_test <- df[-trainIndex, X_labels]
-y_test <- df[-trainIndex, y_label]
+# Perform a train-test split (80/20)
+set.seed(42) # For reproducibility
+trainIndex <- createDataPartition(df_tree$cardio, p = 0.8, list = FALSE)
+df_train <- df_tree[trainIndex, ]
+df_test <- df_tree[-trainIndex, ]
 
-# Model training Random Forest
-# Model training
-set.seed(42)
-fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 3, 
-                           search = "grid")
-tunegrid <- expand.grid(.mtry=c(2, sqrt(ncol(X_train)), ncol(X_train)/2))
-rf_model <- train(x = X_train, y = y_train, method = "rf", 
-                  trControl = fitControl, tuneGrid = tunegrid)
+# Create a decision tree classifier with parameters adjusted for more branches
+dt <- rpart(formula = cardio ~ ., 
+            data = df_train, 
+            method = "class", 
+            control = rpart.control(minsplit = 10,  # Lowered to allow more splits
+                                    minbucket = 5,  # Lowered to allow smaller leaf nodes
+                                    cp = 0.001))    # Lowered to allow more complex tree
 
-# Model summary
-print(rf_model)
+# Print the decision tree model summary
+print(dt)
 
-# Model evaluation
-# Predictions
-predictions <- predict(rf_model, X_test)
-probs <- predict(rf_model, X_test, type = "prob")
-
-# Accuracy
-accuracy <- confusionMatrix(predictions, y_test)
-print(accuracy)
-
-# ROC Curve
-roc_result <- roc(response = as.numeric(y_test), predictor = as.numeric(probs[,2]))
-plot(roc_result)
-auc(roc_result)
-
-# Feature Importance
-importance <- varImp(rf_model, scale = FALSE)
-print(importance)
-
-# Plotting feature importance
-plot(importance)
-
-#Precision and Recall Curve
-# Assuming 'precrec' package is installed for precision-recall curve
-# install.packages("precrec")
-library(precrec)
-prec_recall_res <- evalmod(scores = as.numeric(probs[,2]), labels = as.numeric(y_test))
-autoplot(prec_recall_res)
+# If you want to visualize the tree
+rpart.plot(dt)
 
 ```
 
-```{r}
 
+## Random forest
+```{r echo=TRUE}
+# Create a copy of the cleaned dataset to use for feature importance
+df_forest <- df
+class(df)
+# Assuming 'column_to_drop' is the name of the column you want to drop
+column_to_drop <- "X"
+
+# Drop the specified column
+df_forest <- df_forest[, !names(df_forest) %in% column_to_drop]
+summary(df_forest)
+
+
+# Perform a train-test split (80/20)
+trainIndex <- createDataPartition(df_forest$cardio, p = 0.8, list = FALSE)
+df_train <- df_forest[trainIndex, ]
+df_test <- df_forest[-trainIndex, ]
+
+# Divide the data into features and target for training
+X_train <- df_train[, !(names(df_train) %in% c('cardio'))]
+y_train <- df_train$cardio
+
+# Divide the data into features and target for testing
+X_test <- df_test[, !(names(df_test) %in% c('cardio'))]
+y_test <- df_test$cardio
+
+# Capture the start time
+start_time <- Sys.time()
+# Create a random forest classifier
+rf <- randomForest(x = X_train, y = y_train, ntree = 500, importance = TRUE, seed = 42)
+# Capture the finish time
+finish_time <- Sys.time()
+# Calculate and print the duration
+duration <- finish_time - start_time
+print(paste("Duration:", duration))
+print(rf)
+
+# Get the feature importances
+feature_importances <- importance(rf)
+str(feature_importances)
+print(feature_importances)
 ```
+
