@@ -227,7 +227,7 @@ The full model is significantly better than the null model, but some of the vari
 
 ```{r logistic_reg_2, echo=TRUE}
 # Drop the gender1 and the gluc1 columns and make a copy
-df_logi_2 <- df_logi %>% select(-gender1, -gluc1)
+df_logi_2 <- df_logi %>% select(-gender, -gluc)
 
 # Fit the logistic regression model
 logi_model_2 <- glm(cardio ~ ., data = df_logi_2, family = binomial(link = "logit"))
