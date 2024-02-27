@@ -440,20 +440,32 @@ LR_statistic_p_val <- likelihood_ratio_test(full_model, nested_model)
 
 ```{r echo=TRUE}
 print(paste('Likelihood Ratio statistic:', LR_statistic_p_val))
+
 print(paste('p-value:', LR_statistic_p_val[2]))
-accuracy_value <- accuracy(full_model, df_regression)
+accuracy_value <- generics::accuracy(full_model, df_regression)
+
 print(paste("FULL MODEL accuracy:", accuracy_value))
+
 accuracy_value <- accuracy(nested_model, nested_model)
 print("NESTED MODEL accuracy", accuracy_value)
 ```
 
 ```{r echo=TRUE}
 print("NESTED MODEL WITHOUT GENDER VS NESTED MODEL")
+
 LR_statistic_p_val <- likelihood_ratio_test(nested_model, nested_model_no_gender)
+
 print(paste('Likelihood Ratio statistic:', LR_statistic_p_val[1]))
+
 print(paste('p-value:', LR_statistic_p_val[2]))
+
 print("NESTED MODEL accuracy", accuracy(nested_model, nested_model))
+
 print("NESTED MODEL WITHOUT Gender accuracy", accuracy(nested_model_no_gender, nested_model_no_gender))
+
+```
+
+```{r echo=TRUE}
 
 print("ALTERNATIVE NESTED MODEL VS NESTED MODEL")
 LR_statistic_p_val <- likelihood_ratio_test(nested_model_alt, nested_model)
