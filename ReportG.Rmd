@@ -302,20 +302,13 @@ print(cv)
 ```
 
 
-```{r echo=TRUE}
+```{r FOREST, echo=TRUE}
 # Create a copy of the cleaned dataset to use for feature importance
-df_forest <- df
-class(df)
-# Assuming 'column_to_drop' is the name of the column you want to drop
-column_to_drop <- "X"
-
-# Drop the specified column
-df_forest <- df_forest[, !names(df_forest) %in% column_to_drop]
-summary(df_forest)
-
+df_forest <- df_tree
 
 # Perform a train-test split (80/20)
 trainIndex <- createDataPartition(df_forest$cardio, p = 0.8, list = FALSE)
+
 df_train <- df_forest[trainIndex, ]
 df_test <- df_forest[-trainIndex, ]
 
@@ -327,16 +320,14 @@ y_train <- df_train$cardio
 X_test <- df_test[, !(names(df_test) %in% c('cardio'))]
 y_test <- df_test$cardio
 
-# Capture the start time
-start_time <- Sys.time()
 # Create a random forest classifier
 rf <- randomForest(x = X_train, y = y_train, ntree = 500, importance = TRUE, seed = 42)
-# Capture the finish time
-finish_time <- Sys.time()
-# Calculate and print the duration
-duration <- finish_time - start_time
-print(paste("Duration:", duration))
-print(rf)
+
+# Make predictions
+y_pred <- predict(rf, X_test)
+
+# Print the confusion matrix
+confusionMatrix(y_pred, y_test)
 
 # Get the feature importances
 feature_importances <- importance(rf)

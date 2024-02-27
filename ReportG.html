@@ -822,38 +822,11 @@ print(cv)</code></pre>
 ## Accuracy was used to select the optimal model using the largest value.
 ## The final value used for the model was cp = 0.005681818.</code></pre>
 <pre class="r"><code># Create a copy of the cleaned dataset to use for feature importance
-df_forest &lt;- df
-class(df)</code></pre>
-<pre><code>## [1] &quot;data.frame&quot;</code></pre>
-<pre class="r"><code># Assuming &#39;column_to_drop&#39; is the name of the column you want to drop
-column_to_drop &lt;- &quot;X&quot;
+df_forest &lt;- df_tree
 
-# Drop the specified column
-df_forest &lt;- df_forest[, !names(df_forest) %in% column_to_drop]
-summary(df_forest)</code></pre>
-<pre><code>##       age        gender        height          weight           ap_hi      
-##  Min.   :29.56   0:44706   Min.   :131.0   Min.   : 31.00   Min.   : 70.0  
-##  1st Qu.:48.34   1:23935   1st Qu.:159.0   1st Qu.: 65.00   1st Qu.:120.0  
-##  Median :53.94             Median :165.0   Median : 72.00   Median :120.0  
-##  Mean   :53.29             Mean   :164.4   Mean   : 74.11   Mean   :126.6  
-##  3rd Qu.:58.38             3rd Qu.:170.0   3rd Qu.: 82.00   3rd Qu.:140.0  
-##  Max.   :64.92             Max.   :207.0   Max.   :183.00   Max.   :230.0  
-##      ap_lo        cholesterol gluc      smoke     alco      active    cardio   
-##  Min.   : 45.00   0:51469     0:58347   0:62598   0:64959   0:13491   0:34673  
-##  1st Qu.: 80.00   1: 9297     1: 5067   1: 6043   1: 3682   1:55150   1:33968  
-##  Median : 80.00   2: 7875     2: 5227                                          
-##  Mean   : 81.39                                                                
-##  3rd Qu.: 90.00                                                                
-##  Max.   :190.00                                                                
-##       BMI       
-##  Min.   :10.73  
-##  1st Qu.:23.88  
-##  Median :26.35  
-##  Mean   :27.44  
-##  3rd Qu.:30.12  
-##  Max.   :69.53</code></pre>
-<pre class="r"><code># Perform a train-test split (80/20)
+# Perform a train-test split (80/20)
 trainIndex &lt;- createDataPartition(df_forest$cardio, p = 0.8, list = FALSE)
+
 df_train &lt;- df_forest[trainIndex, ]
 df_test &lt;- df_forest[-trainIndex, ]
 
@@ -865,50 +838,59 @@ y_train &lt;- df_train$cardio
 X_test &lt;- df_test[, !(names(df_test) %in% c(&#39;cardio&#39;))]
 y_test &lt;- df_test$cardio
 
-# Capture the start time
-start_time &lt;- Sys.time()
 # Create a random forest classifier
 rf &lt;- randomForest(x = X_train, y = y_train, ntree = 500, importance = TRUE, seed = 42)
-# Capture the finish time
-finish_time &lt;- Sys.time()
-# Calculate and print the duration
-duration &lt;- finish_time - start_time
-print(paste(&quot;Duration:&quot;, duration))</code></pre>
-<pre><code>## [1] &quot;Duration: 1.23593866825104&quot;</code></pre>
-<pre class="r"><code>print(rf)</code></pre>
-<pre><code>## 
-## Call:
-##  randomForest(x = X_train, y = y_train, ntree = 500, importance = TRUE,      seed = 42) 
-##                Type of random forest: classification
-##                      Number of trees: 500
-## No. of variables tried at each split: 3
+
+# Make predictions
+y_pred &lt;- predict(rf, X_test)
+
+# Print the confusion matrix
+confusionMatrix(y_pred, y_test)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
 ## 
-##         OOB estimate of  error rate: 27.26%
-## Confusion matrix:
-##       0     1 class.error
-## 0 21068  6671   0.2404917
-## 1  8298 18877   0.3053542</code></pre>
+##           Reference
+## Prediction    0    1
+##          0 5285 2089
+##          1 1649 4704
+##                                           
+##                Accuracy : 0.7277          
+##                  95% CI : (0.7202, 0.7351)
+##     No Information Rate : 0.5051          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.455           
+##                                           
+##  Mcnemar&#39;s Test P-Value : 6.954e-13       
+##                                           
+##             Sensitivity : 0.7622          
+##             Specificity : 0.6925          
+##          Pos Pred Value : 0.7167          
+##          Neg Pred Value : 0.7404          
+##              Prevalence : 0.5051          
+##          Detection Rate : 0.3850          
+##    Detection Prevalence : 0.5372          
+##       Balanced Accuracy : 0.7273          
+##                                           
+##        &#39;Positive&#39; Class : 0               
+## </code></pre>
 <pre class="r"><code># Get the feature importances
 feature_importances &lt;- importance(rf)
 str(feature_importances)</code></pre>
-<pre><code>##  num [1:12, 1:4] 108.1 21.5 40.9 51.9 270.6 ...
+<pre><code>##  num [1:9, 1:4] 118.1 54.2 297.8 44.5 136.4 ...
 ##  - attr(*, &quot;dimnames&quot;)=List of 2
-##   ..$ : chr [1:12] &quot;age&quot; &quot;gender&quot; &quot;height&quot; &quot;weight&quot; ...
+##   ..$ : chr [1:9] &quot;age&quot; &quot;weight&quot; &quot;ap_hi&quot; &quot;ap_lo&quot; ...
 ##   ..$ : chr [1:4] &quot;0&quot; &quot;1&quot; &quot;MeanDecreaseAccuracy&quot; &quot;MeanDecreaseGini&quot;</code></pre>
 <pre class="r"><code>print(feature_importances)</code></pre>
-<pre><code>##                      0          1 MeanDecreaseAccuracy MeanDecreaseGini
-## age         108.077199  50.589815            112.90634        4840.9757
-## gender       21.523396  13.875599             29.07767         350.7127
-## height       40.918267  24.712032             61.71578        2275.7953
-## weight       51.857785  31.410123             89.59247        2415.1745
-## ap_hi       270.598437 153.469402            318.19429        4492.5510
-## ap_lo        37.868834  32.826922             64.29315        2147.9322
-## cholesterol 144.936553  26.936733            149.10988         994.8136
-## gluc         62.175780 -32.478617             27.47732         418.9881
-## smoke        12.924987  12.410891             20.19331         211.0871
-## alco         18.731319  -2.193502             13.59603         172.6578
-## active        5.540319  18.355409             16.33976         308.3972
-## BMI          52.664192  29.640175             84.72169        3349.4333</code></pre>
+<pre><code>##                      0           1 MeanDecreaseAccuracy MeanDecreaseGini
+## age         118.133882  57.0282755            129.63225        5699.7366
+## weight       54.177195  34.9422136             85.65416        2899.4898
+## ap_hi       297.822281 157.8742381            361.27862        4623.8706
+## ap_lo        44.502033  31.8588113             69.68196        2211.5512
+## cholesterol 136.427460  39.2947993            133.26369         987.2101
+## smoke        12.483662  10.3890164             17.25537         245.3709
+## alco         19.661240   0.1084358             15.95668         190.9772
+## active        7.382258  19.0619210             18.97229         330.3304
+## BMI          53.845042  33.5616814             88.32050        4265.1814</code></pre>
 </div>
 
 
