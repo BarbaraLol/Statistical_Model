@@ -358,6 +358,8 @@ Gabriel Masella, Ziyang Fu</h4>
 </div>
 
 
+<div id="import-the-data" class="section level1">
+<h1>Import the data</h1>
 <pre class="r"><code># Define the current working directory
 cwd &lt;- getwd()
 
@@ -380,6 +382,8 @@ head(data)</code></pre>
 ## 4      1      1
 ## 5      0      0
 ## 6      0      0</code></pre>
+<p>The data includes columns for the following variables: * id: a unique
+identifier for each patient * age: the age of the patient in days *</p>
 <pre class="r"><code># Create a working copy to avoid modifying the original data
 df &lt;- data
 
@@ -891,6 +895,7 @@ str(feature_importances)</code></pre>
 ## alco         19.661240   0.1084358             15.95668         190.9772
 ## active        7.382258  19.0619210             18.97229         330.3304
 ## BMI          53.845042  33.5616814             88.32050        4265.1814</code></pre>
+</div>
 </div>
 
 

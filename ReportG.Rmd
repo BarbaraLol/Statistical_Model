@@ -18,9 +18,10 @@ library(rpart)
 library(rpart.plot)
 
 knitr::opts_chunk$set(echo = TRUE)
+# knitr::include_graphics("./heat_matrix.png")
 ```
 
-```{r functions, echo=TRUE, include=FALSE}
+```{r functions, include=FALSE, echo=FALSE, include=FALSE}
 # Define likelihood_ratio_test function
 likelihood_ratio_test <- function(full_model, null_model) {
   LR_statistic <- -2 * (logLik(null_model) - logLik(full_model))
@@ -29,10 +30,9 @@ likelihood_ratio_test <- function(full_model, null_model) {
   return(c(LR_statistic, p_val))
 }
 
-# Set the number of CPU cores to use
-num_cores <- parallel::detectCores()
-cat("Number of CPU cores:", num_cores, "\n")
 ```
+
+# Import the data
 
 ```{r data, echo=TRUE}
 # Define the current working directory
@@ -44,6 +44,38 @@ data <- read.csv(file.path(cwd, 'health_data.csv'))
 # Display the first few rows of the data
 head(data)
 ```
+
+The data includes columns for the following variables:
+
+-   id: a unique identifier for each patient;
+
+-   an unnamed column as an index;
+
+-   age: the age of the patient in days;
+
+-   gender: a categorical feature for the sex of the patient, with 0 for "female" and 1 for "male";
+
+-   height: height of patients in cm;
+
+-   weight: the weight of the patients in kg;
+
+-   ap_hi: systolic blood pressure, in mmHg;
+
+-   ap_lo: diastolic blood pressure, in mmHg;
+
+-   cholesterol: a categorical feature that codifies as 0 a normal level of cholesterol, 1 an above average level of cholesterol and with 2 a well above average level of cholesterol;
+
+-   gluc: a categorical feature that codifies as 0 a normal level of glucose, 1 an above average level of glucose and with 2 a well above average level of glucose;
+
+-   smoke: codifies whether the patient is a smoker or not;
+
+-   alco: codifies whether the patient is an habitual alcohol consumer;
+
+-   active: codifies whether the patient is physically active or not;
+
+-   cardio: the target variable, codifies whether the patient has been diagnosed with a cardiac disease.
+
+It's necessary to filter these columns by dropping the first two columns which are useless, converting the age from days into years, filtering for NaNs, Infs, eliminate absurd values (there are, for instance, negative pressure values, or values well above what's physically possible, and some that are obvious input mistakes, but in a complicated way that would require edit by hand of each "wrong" value). A BMI column is added, since we expect height to be of little importance and the weight alone is insufficient to determine the body type of a person.
 
 ```{r data_cleaning, echo=TRUE}
 # Create a working copy to avoid modifying the original data
@@ -84,12 +116,22 @@ df[categorical] <- lapply(df[categorical], as.factor)
 head(df)
 ```
 
+# EDA
+Here's the summary statistics for the cleaned dataset:
 ```{r dataset_analysis_summary, echo=TRUE}
 # Summary statistics
 summary(df)
 ```
 
-```{r dataset_analysis, echo=TRUE}
+The cleaned dataset contains 68,000 observations and 13 variables. The target variable is "cardio", which is a binary variable that indicates whether a patient has been diagnosed with a cardiac disease. The other variables include 6 numerical variables and 6 categorical variables, as listed before.  
+Let's now proceed with the exploratory data analysis (EDA) to better understand the distribution of the variables and their relationships with the target variable. The R code is for illustrative purposes only, the plots have been obtained in Python and are displayed below.
+
+```{r dataset_analysis_plots, echo=TRUE}
+knitr::include_graphics("./numerical_distributions.png")
+knitr::include_graphics("./categorical_distributions.png")
+```
+
+```{r dataset_analysis, echo=FALSE, include=TRUE}
 # Create a copy of the cleaned dataset to use for EDA
 df_eda <- df
 
@@ -243,8 +285,8 @@ anova(logi_model, logi_model_2, test = "Chisq")
 The second model is significantly better than the null model, and it is also significantly better than the first model.
 
 ## Tree
-Parametri da tunare>
 
+Parametri da tunare\>
 
 ```{r TREE, echo=TRUE}
 
@@ -301,7 +343,6 @@ cv <- train(form = cardio ~ .,
 print(cv)
 ```
 
-
 ```{r FOREST, echo=TRUE}
 # Create a copy of the cleaned dataset to use for feature importance
 df_forest <- df_tree
@@ -334,5 +375,3 @@ feature_importances <- importance(rf)
 str(feature_importances)
 print(feature_importances)
 ```
-
-
