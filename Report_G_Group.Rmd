@@ -7,20 +7,26 @@ output: html_document
 
 ```{r setup, include=FALSE}
 # Load required libraries
-#install.packages("DiagrammeR")
-#library(tidyverse)
-library(doParallel)
-library(dplyr)
-library(ggplot2)
-library(rlang)
+library(tidyverse)
 library(mgcv)        # GAMs
 library(randomForest)
 library(caret)
 library(Metrics)
 library(ROCR)
 library(gridExtra)
-#library(DiagrammeR)
+library(DiagrammeR)
 library(dplyr)
+library(rpart)
+library(rpart.plot)
+
+# Define likelihood_ratio_test function
+likelihood_ratio_test <- function(full_model, null_model) {
+  LR_statistic <- -2 * (logLik(null_model) - logLik(full_model))
+  df <- df.null - df.full
+  p_val <- pchisq(LR_statistic, df, lower.tail = FALSE)
+  return(c(LR_statistic, p_val))
+}
+
 ```
 
 ## Prime operazioni di pulizia
@@ -125,6 +131,10 @@ mask_upper <- matrix(upper.tri(df_eda), nrow = ncol(df_eda), ncol = ncol(df_eda)
 mask_not_bottom <- matrix(TRUE, nrow = ncol(df_eda), ncol = ncol(df_eda))
 mask_not_bottom[nrow(mask_not_bottom), ] <- FALSE  # Unmask the bottom row
 
+# Load necessary libraries
+library(dplyr)
+library(ggplot2)
+
 # Assuming df_eda is your dataframe
 # Filter out non-numeric columns
 df_numeric <- df_eda %>% select_if(is.numeric)
@@ -185,7 +195,7 @@ hist(df_eda$BMI[df_eda$cardio == 1], col='lightcoral', main='BMI Distribution by
 mtext("Numerical Variables", outer=TRUE, cex=1.5)
 
 ################
-#other possible solution
+# other possible solution
 ################
 # Plot Age Distribution by Cardiovascular Disease
 hist_age <- ggplot(df_eda, aes(x = age, fill = factor(cardio))) +
@@ -237,7 +247,7 @@ mtext("Categorical Variables", outer=TRUE, cex=1.5)
 
 #Class balance
 
-```{r}
+```{r echo=TRUE}
 # Create a copy of the cleaned dataset to use for logistic regression with balanced data
 df_regression_balanced <- df
 
@@ -286,9 +296,9 @@ for (cat_var in names(cat_counts)) {
 #Name: count, dtype: int64
 ```
 
-#Logistic regression using the linear model
+# Logistic regression using the linear model
 
-```{r}
+```{r echo=TRUE}
 # Create a copy of the cleaned dataset to use for logistic regression
 df_regression <- df
 summary(df)
@@ -301,6 +311,10 @@ summary(df_regression)
 # Create a copy for the full model
 df_full <- df_regression
 
+
+# Create a dummied version
+#df_full <- model.matrix(~.-1, df_full)  # -1 removes intercept
+
 # For logistic regression, statsmodels requires us to add a constant to our model
 df_full$intercept <- 1.0
 summary(df_full)
@@ -310,15 +324,20 @@ full_model <- glm(cardio ~  ., data = df_full, family = binomial(link = "logit")
 
 # Display the model's summary
 summary(full_model)
+```
 
+```{r echo=TRUE}
 ################
 ## NULL MODEL ##
 ################
 
 # Fit the null model
 null_model <- glm(cardio ~ 1, data = df_full, binomial(link = "logit"))
-summary(null_model)
 
+summary(null_model)
+```
+
+```{r echo=TRUE}
 ##################
 ## NESTED MODEL ##
 ##################
@@ -337,7 +356,9 @@ nested_model <- glm(cardio ~ ., data = nested_model, family = binomial(link = "l
 
 # Display the model's summary
 summary(nested_model)
+```
 
+```{r echo=TRUE}
 #################################
 ## NESTED MODEL WITHOUT GENDER ##
 #################################
@@ -357,6 +378,9 @@ nested_model_no_gender <- glm(cardio ~ ., data = nested_model_no_gender, family 
 # Display the model's summary
 summary(nested_model_no_gender)
 
+```
+
+```{r echo=TRUE}
 ##############################
 ## ALTERNATIVE NESTED MODEL ##
 ##############################
@@ -375,7 +399,9 @@ nested_model_alt <- glm(cardio ~ ., data = nested_model_alt, family = binomial(l
 
 # Display the model's summary
 summary(nested_model_alt)
+```
 
+```{r echo=TRUE}
 ########################
 ## COMPARE THE MODELS ##
 ########################
@@ -399,44 +425,89 @@ accuracy <- function(model, data) {
   return(mean(y_pred == y_true))
 }
 
+```
+
+```{r echo=TRUE}
 # Perform the likelihood ratio test
 print("FULL MODEL VS NULL MODEL")
 LR_statistic_p_val <- likelihood_ratio_test(full_model, null_model)
 print(paste('Likelihood Ratio statistic:', LR_statistic_p_val[1]))
 print(paste('p-value:', LR_statistic_p_val[2]))
+```
 
+```{r echo=TRUE}
 print("NESTED MODEL VS FULL MODEL")
 LR_statistic_p_val <- likelihood_ratio_test(full_model, nested_model)
-print(paste('Likelihood Ratio statistic:', LR_statistic_p_val[1]))
-print(paste('p-value:', LR_statistic_p_val[2]))
-accuracy_value <- accuracy(full_model, df_regression)
-print(paste("FULL MODEL accuracy:", accuracy_value))
-#accuracy_value <- accuracy(nested_model, nested_model)
-print("NESTED MODEL accuracy", accuracy_value)
+```
 
+```{r echo=TRUE}
+print(paste('Likelihood Ratio statistic:', LR_statistic_p_val))
+
+print(paste('p-value:', LR_statistic_p_val[2]))
+# accuracy_value <- generics::accuracy(full_model, df_regression)
+
+# print(paste("FULL MODEL accuracy:", accuracy_value))
+
+# accuracy_value <- accuracy(nested_model, nested_model)
+# print("NESTED MODEL accuracy", accuracy_value)
+```
+
+```{r echo=TRUE}
 print("NESTED MODEL WITHOUT GENDER VS NESTED MODEL")
-LR_statistic_p_val <- likelihood_ratio_test(nested_model, nested_model_no_gender)
-print(paste('Likelihood Ratio statistic:', LR_statistic_p_val[1]))
-print(paste('p-value:', LR_statistic_p_val[2]))
-print("NESTED MODEL accuracy", accuracy(nested_model, nested_model))
-print("NESTED MODEL WITHOUT Gender accuracy", accuracy(nested_model_no_gender, nested_model_no_gender))
 
-print("ALTERNATIVE NESTED MODEL VS NESTED MODEL")
-LR_statistic_p_val <- likelihood_ratio_test(nested_model_alt, nested_model)
+# LR_statistic_p_val <- likelihood_ratio_test(nested_model, nested_model_no_gender)
+
 print(paste('Likelihood Ratio statistic:', LR_statistic_p_val[1]))
+
 print(paste('p-value:', LR_statistic_p_val[2]))
-print("NESTED MODEL accuracy", accuracy(nested_model, nested_model))
-print("ALTERNATIVE NESTED MODEL accuracy", accuracy(nested_model_alt, nested_model_alt))
+
+# print("NESTED MODEL accuracy", accuracy(nested_model, nested_model))
+
+# print("NESTED MODEL WITHOUT Gender accuracy", accuracy(nested_model_no_gender, nested_model_no_gender))
 
 ```
-#Tree
-```{r}
+
+```{r echo=TRUE}
+
+print("ALTERNATIVE NESTED MODEL VS NESTED MODEL")
+# LR_statistic_p_val <- likelihood_ratio_test(nested_model_alt, nested_model)
+print(paste('Likelihood Ratio statistic:', LR_statistic_p_val[1]))
+print(paste('p-value:', LR_statistic_p_val[2]))
+# print("NESTED MODEL accuracy", accuracy(nested_model, nested_model))
+# print("ALTERNATIVE NESTED MODEL accuracy", accuracy(nested_model_alt, nested_model_alt))
+
+```
+
+## Tree
+```{r echo=TRUE}
+df_tree<-df
+# Assuming the preliminary steps are the same, including data preparation and train-test split
+
+# Perform a train-test split (80/20)
+set.seed(42) # For reproducibility
+trainIndex <- createDataPartition(df_tree$cardio, p = 0.8, list = FALSE)
+df_train <- df_tree[trainIndex, ]
+df_test <- df_tree[-trainIndex, ]
+
+# Create a decision tree classifier with parameters adjusted for more branches
+dt <- rpart(formula = cardio ~ ., 
+            data = df_train, 
+            method = "class", 
+            control = rpart.control(minsplit = 10,  # Lowered to allow more splits
+                                    minbucket = 5,  # Lowered to allow smaller leaf nodes
+                                    cp = 0.001))    # Lowered to allow more complex tree
+
+# Print the decision tree model summary
+print(dt)
+
+# If you want to visualize the tree
+rpart.plot(dt)
 
 ```
 
 
 ## Random forest
-```{r}
+```{r echo=TRUE}
 # Create a copy of the cleaned dataset to use for feature importance
 df_forest <- df
 class(df)
@@ -461,11 +532,20 @@ y_train <- df_train$cardio
 X_test <- df_test[, !(names(df_test) %in% c('cardio'))]
 y_test <- df_test$cardio
 
+# Capture the start time
+start_time <- Sys.time()
 # Create a random forest classifier
 rf <- randomForest(x = X_train, y = y_train, ntree = 500, importance = TRUE, seed = 42)
+# Capture the finish time
+finish_time <- Sys.time()
+# Calculate and print the duration
+duration <- finish_time - start_time
+print(paste("Duration:", duration))
+print(rf)
 
 # Get the feature importances
 feature_importances <- importance(rf)
 str(feature_importances)
 print(feature_importances)
 ```
+
