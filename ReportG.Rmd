@@ -7,14 +7,14 @@ output: html_document
 
 ```{r setup, include=FALSE}
 # Load required libraries
-library(tidyverse)
-library(mgcv)        # GAMs
+# library(tidyverse)
+# library(mgcv)        # GAMs
 library(randomForest)
 library(caret)
 library(Metrics)
-library(ROCR)
+# library(ROCR)
 library(gridExtra)
-library(DiagrammeR)
+# library(DiagrammeR)
 library(dplyr)
 library(ggplot2)
 library(car)
@@ -223,7 +223,7 @@ summary(logi_model)
 # Compare the model with the null model
 anova(logi_model, test = "Chisq")
 ```
-The full model is significantly better than the null model, but some of the variables are not statistically significant. Let's try removing those and see what happens.
+The full model is significantly better than the null model, but some of the variables are not statistically significant, except for glucose, for which the level 1 is not significant while the level 2 is, but it's negatively correlated with the target variable. This looks like a selection bias problem: it's likely that people with very high glucose levels have diabetes, so it's possible that 
 
 ```{r logistic_reg_2, echo=TRUE}
 # Drop the gender1 and the gluc1 columns and make a copy
@@ -240,4 +240,11 @@ anova(logi_model_2, test = "Chisq")
 
 # Compare the two models
 anova(logi_model, logi_model_2, test = "Chisq")
+```
+
+The second model is significantly better than the null model, and it is also significantly better than the first model. 
+
+```{r GLM, echo=TRUE}
+
+
 ```
