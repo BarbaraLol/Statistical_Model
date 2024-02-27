@@ -4,9 +4,15 @@ author: "Barbara Loletti, Andrea Esposito, Alberto Russo, Gabriel Masella, Ziyan
 date: "`r Sys.Date()`"
 output: html_document
 ---
+
 ```{r setup, include=FALSE}
 # Load required libraries
+#install.packages("DiagrammeR")
 #library(tidyverse)
+library(doParallel)
+library(dplyr)
+library(ggplot2)
+library(rlang)
 library(mgcv)        # GAMs
 library(randomForest)
 library(caret)
@@ -14,6 +20,7 @@ library(Metrics)
 library(ROCR)
 library(gridExtra)
 #library(DiagrammeR)
+library(dplyr)
 ```
 
 ## Prime operazioni di pulizia
@@ -101,6 +108,7 @@ barplot(table(df_eda$alco), col='lightblue', main='Alcohol Consumption Distribut
 barplot(table(df_eda$active), col='lightblue', main='Physical Activity Distribution', xlab='Physical Activity')
 mtext("Categorical Variables", outer=TRUE, cex=1.5)
 ```
+
 ## EDA - explore data relationships
 
 ```{r}
@@ -117,8 +125,15 @@ mask_upper <- matrix(upper.tri(df_eda), nrow = ncol(df_eda), ncol = ncol(df_eda)
 mask_not_bottom <- matrix(TRUE, nrow = ncol(df_eda), ncol = ncol(df_eda))
 mask_not_bottom[nrow(mask_not_bottom), ] <- FALSE  # Unmask the bottom row
 
-# Plot the main heatmap with the upper triangle masked
-heatmap(df_eda %>% cor() %>% as.matrix(),
+# Assuming df_eda is your dataframe
+# Filter out non-numeric columns
+df_numeric <- df_eda %>% select_if(is.numeric)
+
+# Calculate the correlation matrix on the numeric dataframe
+cor_matrix <- cor(df_numeric) %>% as.matrix()
+
+# Create the heatmap
+heatmap(cor_matrix,
         Rowv = NA, Colv = NA,
         col = colorRampPalette(c("blue", "white", "red"))(30),
         main = 'Enhanced Correlation Matrix with Bottom Row Highlighted',
@@ -129,15 +144,26 @@ heatmap(df_eda %>% cor() %>% as.matrix(),
 
 # Overlay with the bottom row highlighted
 # Adjust 'highlight_col' to change the highlight color
-highlight_col <- colorRampPalette(c("seagreen", "white"))(30)
-heatmap(df_eda %>% cor() %>% as.matrix(),
+# Ensure df_eda contains only numeric columns
+df_numeric <- df_eda %>% select_if(is.numeric)
+
+# Calculate the correlation matrix
+cor_matrix <- cor(df_numeric)
+
+# Define your color palette for the heatmap
+highlight_col <- colorRampPalette(c("blue", "white", "red"))(30)
+
+# Generate the heatmap
+heatmap(cor_matrix,
         Rowv = NA, Colv = NA,
         col = highlight_col,
-        add.expr = {
-          rect(0, ncol(df_eda), nrow(df_eda) + 0.5, 0.5, col = 'transparent', border = 'black', lwd = 2)
-        },
         symm = TRUE,
-        revC = TRUE)
+        revC = TRUE,
+        add.expr = {
+          # Add a black rectangle around the last row
+          # Adjusting the rect parameters according to your specific needs
+          rect(0, ncol(df_numeric), nrow(df_numeric) + 0.5, 0.5, col = 'transparent', border = 'black', lwd = 2)
+        })
 ```
 
 ```{r}
@@ -208,7 +234,9 @@ barplot(table(df_eda$active[df_eda$cardio == 0]), col='lightblue', main='Physica
 barplot(table(df_eda$active[df_eda$cardio == 1]), col='lightcoral', main='Physical Activity Distribution by Cardiovascular Disease (Yes)', xlab='Physical Activity')
 mtext("Categorical Variables", outer=TRUE, cex=1.5)
 ```
+
 #Class balance
+
 ```{r}
 # Create a copy of the cleaned dataset to use for logistic regression with balanced data
 df_regression_balanced <- df
@@ -257,13 +285,14 @@ for (cat_var in names(cat_counts)) {
 #0    13491
 #Name: count, dtype: int64
 ```
+
 #Logistic regression using the linear model
+
 ```{r}
 # Create a copy of the cleaned dataset to use for logistic regression
 df_regression <- df
-
-# Convert all categorical variables to integers
-df_regression[c("gender", "cholesterol", "gluc", "smoke", "alco", "active", "cardio")] <- lapply(df_regression[c("gender", "cholesterol", "gluc", "smoke", "alco", "active", "cardio")], as.integer)
+summary(df)
+summary(df_regression)
 
 ################
 ## FULL MODEL ##
@@ -272,14 +301,12 @@ df_regression[c("gender", "cholesterol", "gluc", "smoke", "alco", "active", "car
 # Create a copy for the full model
 df_full <- df_regression
 
-# Create a dummied version
-df_full <- model.matrix(~.-1, df_full)  # -1 removes intercept
-
 # For logistic regression, statsmodels requires us to add a constant to our model
 df_full$intercept <- 1.0
+summary(df_full)
 
 # Fit the logistic regression model
-full_model <- glm(cardio ~ ., data = df_full, family = "binomial")
+full_model <- glm(cardio ~  ., data = df_full, family = binomial(link = "logit"))
 
 # Display the model's summary
 summary(full_model)
@@ -289,7 +316,7 @@ summary(full_model)
 ################
 
 # Fit the null model
-null_model <- glm(cardio ~ 1, data = df_full, family = "binomial")
+null_model <- glm(cardio ~ 1, data = df_full, binomial(link = "logit"))
 summary(null_model)
 
 ##################
@@ -302,14 +329,11 @@ nested_model <- df_regression
 # Drop the unwanted columns, except age
 nested_model <- nested_model[, !names(nested_model) %in% c('gluc', 'alco', 'height', 'ap_lo')]
 
-# Create a dummied version
-nested_model <- model.matrix(~.-1, nested_model)  # -1 removes intercept
-
 # For logistic regression, statsmodels requires us to add a constant to our model
 nested_model$intercept <- 1.0
 
 # Fit the logistic regression model
-nested_model <- glm(cardio ~ ., data = nested_model, family = "binomial")
+nested_model <- glm(cardio ~ ., data = nested_model, family = binomial(link = "logit"))
 
 # Display the model's summary
 summary(nested_model)
@@ -324,14 +348,11 @@ nested_model_no_gender <- df_regression
 # Drop the unwanted columns
 nested_model_no_gender <- nested_model_no_gender[, !names(nested_model_no_gender) %in% c('gluc', 'alco', 'height', 'ap_lo', 'gender')]
 
-# Create a dummied version
-nested_model_no_gender <- model.matrix(~.-1, nested_model_no_gender)  # -1 removes intercept
-
 # For logistic regression, statsmodels requires us to add a constant to our model
 nested_model_no_gender$intercept <- 1.0
 
 # Fit the logistic regression model
-nested_model_no_gender <- glm(cardio ~ ., data = nested_model_no_gender, family = "binomial")
+nested_model_no_gender <- glm(cardio ~ ., data = nested_model_no_gender, family = binomial(link = "logit"))
 
 # Display the model's summary
 summary(nested_model_no_gender)
@@ -346,14 +367,11 @@ nested_model_alt <- df_regression
 # Drop the unwanted columns
 nested_model_alt <- nested_model_alt[, !names(nested_model_alt) %in% c('gender', 'height', 'BMI')]
 
-# Create a dummied version
-nested_model_alt <- model.matrix(~.-1, nested_model_alt)  # -1 removes intercept
-
 # For logistic regression, statsmodels requires us to add a constant to our model
 nested_model_alt$intercept <- 1.0
 
 # Fit the logistic regression model
-nested_model_alt <- glm(cardio ~ ., data = nested_model_alt, family = "binomial")
+nested_model_alt <- glm(cardio ~ ., data = nested_model_alt, family = binomial(link = "logit"))
 
 # Display the model's summary
 summary(nested_model_alt)
@@ -370,101 +388,84 @@ likelihood_ratio_test <- function(full_model, nested_model) {
   return(c(LR_statistic, p_val))
 }
 
+#Accuracy of the Full model
+accuracy <- function(model, data) {
+  # Ensure 'data' includes an 'intercept' column set to 1
+  data$intercept <- 1
+  
+  y_pred <- predict(model, data, type = "response")
+  y_pred <- ifelse(y_pred > 0.5, 1, 0)
+  y_true <- data$cardio
+  return(mean(y_pred == y_true))
+}
+
 # Perform the likelihood ratio test
 print("FULL MODEL VS NULL MODEL")
 LR_statistic_p_val <- likelihood_ratio_test(full_model, null_model)
-print('Likelihood Ratio statistic: ', LR_statistic_p_val[1])
-print('p-value: ', LR_statistic_p_val[2])
+print(paste('Likelihood Ratio statistic:', LR_statistic_p_val[1]))
+print(paste('p-value:', LR_statistic_p_val[2]))
 
 print("NESTED MODEL VS FULL MODEL")
 LR_statistic_p_val <- likelihood_ratio_test(full_model, nested_model)
-print('Likelihood Ratio statistic: ', LR_statistic_p_val[1])
-print('p-value: ', LR_statistic_p_val[2])
+print(paste('Likelihood Ratio statistic:', LR_statistic_p_val[1]))
+print(paste('p-value:', LR_statistic_p_val[2]))
+accuracy_value <- accuracy(full_model, df_regression)
+print(paste("FULL MODEL accuracy:", accuracy_value))
+#accuracy_value <- accuracy(nested_model, nested_model)
+print("NESTED MODEL accuracy", accuracy_value)
 
 print("NESTED MODEL WITHOUT GENDER VS NESTED MODEL")
 LR_statistic_p_val <- likelihood_ratio_test(nested_model, nested_model_no_gender)
-print('Likelihood Ratio statistic: ', LR_statistic_p_val[1])
-print('p-value: ', LR_statistic_p_val[2])
+print(paste('Likelihood Ratio statistic:', LR_statistic_p_val[1]))
+print(paste('p-value:', LR_statistic_p_val[2]))
+print("NESTED MODEL accuracy", accuracy(nested_model, nested_model))
+print("NESTED MODEL WITHOUT Gender accuracy", accuracy(nested_model_no_gender, nested_model_no_gender))
 
 print("ALTERNATIVE NESTED MODEL VS NESTED MODEL")
 LR_statistic_p_val <- likelihood_ratio_test(nested_model_alt, nested_model)
-print('Likelihood Ratio statistic: ', LR_statistic_p_val[1])
-print('p-value: ', LR_statistic_p_val[2])
+print(paste('Likelihood Ratio statistic:', LR_statistic_p_val[1]))
+print(paste('p-value:', LR_statistic_p_val[2]))
+print("NESTED MODEL accuracy", accuracy(nested_model, nested_model))
+print("ALTERNATIVE NESTED MODEL accuracy", accuracy(nested_model_alt, nested_model_alt))
 
 ```
-
-#GAM model
-
-```{r}
-# Fit the GAM model for the full model
-full_gam_model <- gam(cardio ~ s(age) + s(height) + s(weight) + s(ap_hi) + s(ap_lo) + s(BMI) +
-                      gender + cholesterol + gluc + smoke + alco + active, 
-                      data = df_regression, family = binomial)
-
-# Display the GAM model's summary
-summary(full_gam_model)
-
-
-# Plot partial dependence plots for the full GAM model
-par(mfrow = c(3, 2))  # Adjust the layout based on the number of predictors
-
-plot(full_gam_model, select = 1)  # Plot for age
-plot(full_gam_model, select = 2)  # Plot for height
-plot(full_gam_model, select = 3)  # Plot for weight
-plot(full_gam_model, select = 4)  # Plot for ap_hi
-plot(full_gam_model, select = 5)  # Plot for ap_lo
-plot(full_gam_model, select = 6)  # Plot for BMI
-
-par(mfrow = c(1, 1))  # Reset the layout
-
-
-# Assuming 'df_test' is your test dataset (similarly to 'df_train' being your training dataset)
-# You need to adjust these names based on your actual dataset
-
-# Predict the probabilities using the full GAM model
-predicted_probabilities <- predict(full_gam_model, newdata = df_test, type = "response")
-
-# Convert probabilities to binary predictions (0 or 1) based on a threshold
-threshold <- 0.5  # Adjust the threshold as needed
-predicted_classes <- ifelse(predicted_probabilities > threshold, 1, 0)
-
-# Create a confusion matrix
-conf_matrix <- table(Actual = df_test$cardio, Predicted = predicted_classes)
-
-# Compute accuracy
-accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
-
-# Compute precision, recall, and F1 score
-precision <- conf_matrix[2, 2] / sum(conf_matrix[, 2])
-recall <- conf_matrix[2, 2] / sum(conf_matrix[2, ])
-f1_score <- 2 * (precision * recall) / (precision + recall)
-
-# Display the results
-cat("Accuracy:", accuracy, "\n")
-cat("Precision:", precision, "\n")
-cat("Recall:", recall, "\n")
-cat("F1 Score:", f1_score, "\n")
-
-# Display the confusion matrix
-conf_matrix
-```
-
-## Decision tree
-```{r}
-# Decision Tree Diagram for Random Forest Model
-tree_diagram <- DiagrammeR::Diagram(
-  edge_definitions = create_edge_df(rf_model),
-  node_definitions = create_node_df(rf_model)
-)
-
-render_graph(tree_diagram)
-```
-
+#Tree
 ```{r}
 
 ```
 
 
+## Random forest
+```{r}
+# Create a copy of the cleaned dataset to use for feature importance
+df_forest <- df
+class(df)
+# Assuming 'column_to_drop' is the name of the column you want to drop
+column_to_drop <- "X"
+
+# Drop the specified column
+df_forest <- df_forest[, !names(df_forest) %in% column_to_drop]
+summary(df_forest)
 
 
+# Perform a train-test split (80/20)
+trainIndex <- createDataPartition(df_forest$cardio, p = 0.8, list = FALSE)
+df_train <- df_forest[trainIndex, ]
+df_test <- df_forest[-trainIndex, ]
 
+# Divide the data into features and target for training
+X_train <- df_train[, !(names(df_train) %in% c('cardio'))]
+y_train <- df_train$cardio
+
+# Divide the data into features and target for testing
+X_test <- df_test[, !(names(df_test) %in% c('cardio'))]
+y_test <- df_test$cardio
+
+# Create a random forest classifier
+rf <- randomForest(x = X_train, y = y_train, ntree = 500, importance = TRUE, seed = 42)
+
+# Get the feature importances
+feature_importances <- importance(rf)
+str(feature_importances)
+print(feature_importances)
+```
