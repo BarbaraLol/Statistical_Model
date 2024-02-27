@@ -243,6 +243,8 @@ anova(logi_model, logi_model_2, test = "Chisq")
 The second model is significantly better than the null model, and it is also significantly better than the first model.
 
 ## Tree
+Parametri da tunare>
+
 
 ```{r TREE, echo=TRUE}
 
@@ -251,6 +253,12 @@ df_tree<-df %>% select(-gender, -gluc, -height)
 
 # Perform a train-test split (80/20)
 set.seed(42) # For reproducibility
+
+# Set the parameters for the decision tree
+cp = c(0.01, 0.001, 0.0001)
+minsplit = c(10, 30, 100)
+minbucket = c(10, 30, 100)
+maxdepth = c(10, 20, 30)
 
 trainIndex <- createDataPartition(df_tree$cardio, p = 0.8, list = FALSE)
 
@@ -262,12 +270,78 @@ df_test <- df_tree[-trainIndex, ]
 dt <- rpart(formula = cardio ~ ., 
             data = df_train, 
             method = "class", 
-            control = rpart.control(minsplit = 10,  # Lowered to allow more splits
+            control = rpart.control(minsplit = 10,    # Lowered to allow more splits
                                     minbucket = 100,  # Lowered to allow smaller leaf nodes
-                                    maxdepth = 10,  # Increased to allow deeper trees
+                                    maxdepth = 10,    # Increased to allow deeper trees
                                     ))
 
 # If you want to visualize the tree
 rpart.plot(dt)
 
 ```
+
+```{r CV, echo=TRUE}
+# Set the seed for reproducibility
+set.seed(42)
+
+# Create a grid search for the decision tree
+tuneGrid <- expand.grid(cp = c(0.01, 0.001, 0.0001),
+                        minsplit = c(10, 30, 100),
+                        minbucket = c(10, 30, 100),
+                        maxdepth = c(10, 20, 30))
+
+# Perform a 5-fold cross-validation
+cv <- train(form = cardio ~ ., 
+            data = df_tree, 
+            method = "rpart", 
+            trControl = trainControl(method = "cv", number = 5)
+)
+
+# Print the results
+print(cv)
+```
+
+
+```{r echo=TRUE}
+# Create a copy of the cleaned dataset to use for feature importance
+df_forest <- df
+class(df)
+# Assuming 'column_to_drop' is the name of the column you want to drop
+column_to_drop <- "X"
+
+# Drop the specified column
+df_forest <- df_forest[, !names(df_forest) %in% column_to_drop]
+summary(df_forest)
+
+
+# Perform a train-test split (80/20)
+trainIndex <- createDataPartition(df_forest$cardio, p = 0.8, list = FALSE)
+df_train <- df_forest[trainIndex, ]
+df_test <- df_forest[-trainIndex, ]
+
+# Divide the data into features and target for training
+X_train <- df_train[, !(names(df_train) %in% c('cardio'))]
+y_train <- df_train$cardio
+
+# Divide the data into features and target for testing
+X_test <- df_test[, !(names(df_test) %in% c('cardio'))]
+y_test <- df_test$cardio
+
+# Capture the start time
+start_time <- Sys.time()
+# Create a random forest classifier
+rf <- randomForest(x = X_train, y = y_train, ntree = 500, importance = TRUE, seed = 42)
+# Capture the finish time
+finish_time <- Sys.time()
+# Calculate and print the duration
+duration <- finish_time - start_time
+print(paste("Duration:", duration))
+print(rf)
+
+# Get the feature importances
+feature_importances <- importance(rf)
+str(feature_importances)
+print(feature_importances)
+```
+
+
