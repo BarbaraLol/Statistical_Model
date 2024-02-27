@@ -1,23 +1,21 @@
 ---
 title: "Report_G_Group"
-author: "Alberto Russo, Andrea Esposito, Barbara Loletti Gabriel Masella, Ziyang Fu"
+author: "Alberto Russo, Andrea Esposito, Barbara Loletti, Gabriel Masella, Ziyang Fu"
 date: "`r Sys.Date()`"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 # Load required libraries
-# library(tidyverse)
-# library(mgcv)        # GAMs
 library(randomForest)
 library(caret)
 library(Metrics)
-# library(ROCR)
 library(gridExtra)
-# library(DiagrammeR)
 library(dplyr)
 library(ggplot2)
 library(car)
+library(rpart)
+library(rpart.plot)
 
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -192,7 +190,6 @@ mtext("Numerical Variables", outer=TRUE, cex=1.5)
 
 ```
 
-
 ```{r VIF, echo=TRUE}
 df_vif <- df
 
@@ -207,7 +204,7 @@ vif(no_height)
 
 ```
 
-Do not use the height variable, because it is higly correlated to the BMI and to the weight, with a small correlation with age, while having a low correlation with the target variable.  
+Do not use the height variable, because it is higly correlated to the BMI and to the weight, with a small correlation with age, while having a low correlation with the target variable.\
 It's basically just there to make the esitmation of the variance of the other covariates worse.
 
 ```{r logistic_reg, echo=TRUE}
@@ -223,7 +220,8 @@ summary(logi_model)
 # Compare the model with the null model
 anova(logi_model, test = "Chisq")
 ```
-The full model is significantly better than the null model, but some of the variables are not statistically significant, except for glucose, for which the level 1 is not significant while the level 2 is, but it's negatively correlated with the target variable. This looks like a selection bias problem: it's likely that people with very high glucose levels have diabetes, so it's possible that 
+
+The full model is significantly better than the null model, but some of the variables are not statistically significant, except for glucose, for which the level 1 is not significant while the level 2 is, but it's negatively correlated with the target variable. This looks like a selection bias problem: it's likely that people with very high glucose levels have diabetes, so it's possible that it's a spurious relationship.
 
 ```{r logistic_reg_2, echo=TRUE}
 # Drop the gender1 and the gluc1 columns and make a copy
@@ -242,9 +240,34 @@ anova(logi_model_2, test = "Chisq")
 anova(logi_model, logi_model_2, test = "Chisq")
 ```
 
-The second model is significantly better than the null model, and it is also significantly better than the first model. 
+The second model is significantly better than the null model, and it is also significantly better than the first model.
 
-```{r GLM, echo=TRUE}
+## Tree
 
+```{r TREE, echo=TRUE}
+
+# Create a copy without the excluded variables
+df_tree<-df %>% select(-gender, -gluc, -height)
+
+# Perform a train-test split (80/20)
+set.seed(42) # For reproducibility
+
+trainIndex <- createDataPartition(df_tree$cardio, p = 0.8, list = FALSE)
+
+df_train <- df_tree[trainIndex, ]
+
+df_test <- df_tree[-trainIndex, ]
+
+# Create a decision tree classifier with parameters adjusted for more branches
+dt <- rpart(formula = cardio ~ ., 
+            data = df_train, 
+            method = "class", 
+            control = rpart.control(minsplit = 10,  # Lowered to allow more splits
+                                    minbucket = 100,  # Lowered to allow smaller leaf nodes
+                                    maxdepth = 10,  # Increased to allow deeper trees
+                                    ))
+
+# If you want to visualize the tree
+rpart.plot(dt)
 
 ```
