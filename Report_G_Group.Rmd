@@ -7,17 +7,18 @@ output: html_document
 
 ```{r setup, include=FALSE}
 # Load required libraries
-library(tidyverse)
+#library(tidyverse)
 library(mgcv)        # GAMs
 library(randomForest)
 library(caret)
 library(Metrics)
 library(ROCR)
 library(gridExtra)
-library(DiagrammeR)
 library(dplyr)
 library(rpart)
 library(rpart.plot)
+library(dplyr)
+library(ggplot2)
 
 # Define likelihood_ratio_test function
 likelihood_ratio_test <- function(full_model, null_model) {
@@ -85,8 +86,7 @@ df <- df[, c(names(df)[!(names(df) %in% 'cardio')], 'cardio')]
 ```
 
 ## Quick dataset analysis
-
-```{r}
+```{r eval=FALSE}
 # Create a copy of the cleaned dataset to use for EDA
 df_eda <- df
 
@@ -115,9 +115,15 @@ barplot(table(df_eda$active), col='lightblue', main='Physical Activity Distribut
 mtext("Categorical Variables", outer=TRUE, cex=1.5)
 ```
 
+```{r}
+knitr::include_graphics("./numerical_variables.png")
+knitr::include_graphics("./categorical_variables.png")
+```
+
+
 ## EDA - explore data relationships
 
-```{r}
+```{r eval=FALSE}
 # Create a copy of the cleaned dataset to use for EDA
 df_eda <- df
 
@@ -130,10 +136,6 @@ mask_upper <- matrix(upper.tri(df_eda), nrow = ncol(df_eda), ncol = ncol(df_eda)
 # Create a mask for all but the bottom row (for highlighting)
 mask_not_bottom <- matrix(TRUE, nrow = ncol(df_eda), ncol = ncol(df_eda))
 mask_not_bottom[nrow(mask_not_bottom), ] <- FALSE  # Unmask the bottom row
-
-# Load necessary libraries
-library(dplyr)
-library(ggplot2)
 
 # Assuming df_eda is your dataframe
 # Filter out non-numeric columns
@@ -176,27 +178,13 @@ heatmap(cor_matrix,
         })
 ```
 
-```{r}
+
+```{r eval=FALSE}
 #######################################################
 ## DISTRIBUTION OF DATA ACCORDING TO TARGET VARIABLE ##
 #######################################################
 
 ## Numerical ##
-
-par(mfrow=c(2, 2), mar=c(5, 4, 4, 2) + 0.1, oma=c(0, 0, 2, 0))
-hist(df_eda$age[df_eda$cardio == 0], col='lightblue', main='Age Distribution by Cardiovascular Disease (No)', xlab='Age', breaks=seq(min(df_eda$age), max(df_eda$age) + 1.5, by=1.5), xlim=c(min(df_eda$age), max(df_eda$age) + 1.5))
-hist(df_eda$age[df_eda$cardio == 1], col='lightcoral', main='Age Distribution by Cardiovascular Disease (Yes)', xlab='Age', breaks=seq(min(df_eda$age), max(df_eda$age) + 1.5, by=1.5), xlim=c(min(df_eda$age), max(df_eda$age) + 1.5))
-hist(df_eda$height[df_eda$cardio == 0], col='lightblue', main='Height Distribution by Cardiovascular Disease (No)', xlab='Height', breaks=seq(min(df_eda$height), max(df_eda$height) + 2, by=2), xlim=c(min(df_eda$height), max(df_eda$height) + 2))
-hist(df_eda$height[df_eda$cardio == 1], col='lightcoral', main='Height Distribution by Cardiovascular Disease (Yes)', xlab='Height', breaks=seq(min(df_eda$height), max(df_eda$height) + 2, by=2), xlim=c(min(df_eda$height), max(df_eda$height) + 2))
-hist(df_eda$weight[df_eda$cardio == 0], col='lightblue', main='Weight Distribution by Cardiovascular Disease (No)', xlab='Weight', breaks=seq(min(df_eda$weight), max(df_eda$weight) + 3, by=3), xlim=c(min(df_eda$weight), max(df_eda$weight) + 3))
-hist(df_eda$weight[df_eda$cardio == 1], col='lightcoral', main='Weight Distribution by Cardiovascular Disease (Yes)', xlab='Weight', breaks=seq(min(df_eda$weight), max(df_eda$weight) + 3, by=3), xlim=c(min(df_eda$weight), max(df_eda$weight) + 3))
-hist(df_eda$BMI[df_eda$cardio == 0], col='lightblue', main='BMI Distribution by Cardiovascular Disease (No)', xlab='BMI', breaks=seq(min(df_eda$BMI), max(df_eda$BMI) + 1, by=1), xlim=c(min(df_eda$BMI), max(df_eda$BMI) + 1))
-hist(df_eda$BMI[df_eda$cardio == 1], col='lightcoral', main='BMI Distribution by Cardiovascular Disease (Yes)', xlab='BMI', breaks=seq(min(df_eda$BMI), max(df_eda$BMI) + 1, by=1), xlim=c(min(df_eda$BMI), max(df_eda$BMI) + 1))
-mtext("Numerical Variables", outer=TRUE, cex=1.5)
-
-################
-# other possible solution
-################
 # Plot Age Distribution by Cardiovascular Disease
 hist_age <- ggplot(df_eda, aes(x = age, fill = factor(cardio))) +
   geom_histogram(binwidth = 1.5, color = "white", position = "identity", alpha = 0.7) +
@@ -224,9 +212,6 @@ hist_bmi <- ggplot(df_eda, aes(x = BMI, fill = factor(cardio))) +
 # Display the plots in a 2x2 grid
 gridExtra::grid.arrange(hist_age, hist_height, hist_weight, hist_bmi, ncol = 2)
 
-################
-################
-
 ## Categorical ##
 
 par(mfrow=c(2, 3), mar=c(5, 4, 4, 2) + 0.1, oma=c(0, 0, 2, 0))
@@ -244,6 +229,13 @@ barplot(table(df_eda$active[df_eda$cardio == 0]), col='lightblue', main='Physica
 barplot(table(df_eda$active[df_eda$cardio == 1]), col='lightcoral', main='Physical Activity Distribution by Cardiovascular Disease (Yes)', xlab='Physical Activity')
 mtext("Categorical Variables", outer=TRUE, cex=1.5)
 ```
+
+```{r}
+knitr::include_graphics("./numerical_distributions.png")
+knitr::include_graphics("./categorical_distributions.png")
+knitr::include_graphics("./heat_matrix.png")
+```
+
 
 #Class balance
 
@@ -496,9 +488,6 @@ dt <- rpart(formula = cardio ~ .,
             control = rpart.control(minsplit = 10,  # Lowered to allow more splits
                                     minbucket = 5,  # Lowered to allow smaller leaf nodes
                                     cp = 0.001))    # Lowered to allow more complex tree
-
-# Print the decision tree model summary
-print(dt)
 
 # If you want to visualize the tree
 rpart.plot(dt)
