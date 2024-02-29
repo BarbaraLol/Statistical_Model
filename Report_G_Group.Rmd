@@ -419,9 +419,6 @@ df_gam<-df %>% select(-gender, -gluc, -height)
 
 # Perform a train-test split (80/20)
 set.seed(42) # For reproducibility
-trainIndex <- createDataPartition(df_gam$cardio, p = 0.8, list = FALSE)
-df_train_gam <- df_gam[trainIndex, ]
-df_test_gam <- df_gam[-trainIndex, ]
 
 # Define the formula for the GAM model
 gam_formula <- as.formula("cardio ~ s(age) + s(weight) + s(ap_hi) + s(ap_lo) + s(BMI) + cholesterol + smoke + alco + active")
