@@ -132,28 +132,45 @@ knitr::include_graphics("./categorical_variables.png")
 
 ```
 
-```{r dataset_analysis, eval=FALSE, echo=TRUE}
+```{r dataset_analysis, eval=TRUE, echo=TRUE}
 # Create a copy of the cleaned dataset to use for EDA
-df <- df
+df_plot <- df
 
 #########################
 ## Numerical Variables ##
 #########################
 
+# First, install and load the MASS package
+library(MASS)
+
+# Let's say you have some data in a variable called 'df_plot'
+# This is just an example, replace it with your actual data
+
+# Fit a beta distribution to 'age'
+fit_beta_age <- fitdistr(df_plot$age, "beta")
+print(fit_beta_age)
+
+# Fit an exponential distribution to 'height'
+fit_exp_height <- fitdistr(df_plot$height, "exponential")
+print(fit_exp_height)
+
 # Create the layout for the plots
 par(mfrow=c(2, 2), mar=c(5, 4, 4, 2) + 0.1, oma=c(0, 0, 2, 0))
 
 # Create histograms for the numerical variables
-hist(df$age, breaks=seq(min(df$age), max(df$age) + 1.5, by=1.5), col='lightblue', main='Age Distribution', xlab='Age')
+hist(df_plot$age, breaks=seq(min(df_plot$age), max(df_plot$age) + 1.5, by=1.5), col='lightblue', main='Age Distribution', xlab='Age', freq=FALSE)
+lines(density(df_plot$age), col="red")  # Add density plot
+curve(dbeta(x, fit_beta_age$estimate[1], fit_beta_age$estimate[2]), add=TRUE, col="blue")  # Add fitted beta distribution
 
-hist(df$height, breaks=seq(min(df$height), max(df$height) + 2, by=2), col='lightblue', main='Height Distribution', xlab='Height')
+hist(df_plot$height, breaks=seq(min(df_plot$height), max(df_plot$height) + 2, by=2), col='lightblue', main='Height Distribution', xlab='Height', freq=FALSE)
+lines(density(df_plot$height), col="red")  # Add density plot
+curve(dexp(x, fit_exp_height$estimate), add=TRUE, col="blue")  # Add fitted exponential distribution
 
-hist(df$weight, breaks=seq(min(df$weight), max(df$weight) + 3, by=3), col='lightblue', main='Weight Distribution', xlab='Weight')
-
-hist(df$BMI, breaks=seq(min(df$BMI), max(df$BMI) + 1, by=1), col='lightblue', main='BMI Distribution', xlab='BMI')
+# Continue with your other plots...
 
 # Add a title to the plots
 mtext("Numeric Variables", outer=TRUE, cex=1.5)
+
 
 ###########################
 ## Categorical Variables ##
@@ -163,17 +180,17 @@ mtext("Numeric Variables", outer=TRUE, cex=1.5)
 par(mfrow=c(2, 3), mar=c(5, 4, 4, 2) + 0.1, oma=c(0, 0, 2, 0))
 
 # Create bar plots for the categorical variables
-barplot(table(df$gender), col='lightblue', main='Gender Distribution', xlab='Gender')
+barplot(table(df_plot$gender), col='lightblue', main='Gender Distribution', xlab='Gender')
 
-barplot(table(df$cholesterol), col='lightblue', main='Cholesterol Distribution', xlab='Cholesterol')
+barplot(table(df_plot$cholesterol), col='lightblue', main='Cholesterol Distribution', xlab='Cholesterol')
 
-barplot(table(df$gluc), col='lightblue', main='Glucose Distribution', xlab='Glucose')
+barplot(table(df_plot$gluc), col='lightblue', main='Glucose Distribution', xlab='Glucose')
 
-barplot(table(df$smoke), col='lightblue', main='Smoking Distribution', xlab='Smoking')
+barplot(table(df_plot$smoke), col='lightblue', main='Smoking Distribution', xlab='Smoking')
 
-barplot(table(df$alco), col='lightblue', main='Alcohol Consumption Distribution', xlab='Alcohol Consumption')
+barplot(table(df_plot$alco), col='lightblue', main='Alcohol Consumption Distribution', xlab='Alcohol Consumption')
 
-barplot(table(df$active), col='lightblue', main='Physical Activity Distribution', xlab='Physical Activity')
+barplot(table(df_plot$active), col='lightblue', main='Physical Activity Distribution', xlab='Physical Activity')
 
 # Add a title to the plots
 mtext("Categorical Variables", outer=TRUE, cex=1.5)
@@ -181,7 +198,7 @@ mtext("Categorical Variables", outer=TRUE, cex=1.5)
 
 Now the distributions by target variable:
 
-```{r dataset_analysis_target, eval=TRUE, echo=TRUE}
+```{r dataset_analysis_target, eval=TRUE, echo=FALSE}
 
 knitr::include_graphics("./numerical_distributions.png")
 knitr::include_graphics("./categorical_distributions.png")
@@ -190,7 +207,7 @@ knitr::include_graphics("./categorical_distributions.png")
 According to the distributions, we can see that the difference between the distributions of the height is entirely identical between the two classes, while a difference exists for the other numerical variables. We'll eliminate the height variable from the analysis.  
 For the categorical variables, we can see that the distributions are fairly different for some of the variables, but it's hard to evaluate if the observed differences are given by an actual relationship or just by chance. We'll proceed with the analysis to better understand the relationships between the variables and the target variable, after plotting the correlation matrix.
 
-```{r corr_matrix, eval=FALSE, echo=TRUE}
+```{r corr_matrix, eval=TRUE, echo=TRUE}
 
 knitr::include_graphics("./heat_matrix.png")
 
@@ -387,7 +404,7 @@ for (i in 1:nrow(hps)) {
 
 ## Random Forest
 
-```{r FOREST, echo=TRUE}
+```{r FOREST, eval=FALSE, echo=TRUE}
 # Create a copy of the cleaned dataset to use for feature importance
 df_forest <- df_tree
 
