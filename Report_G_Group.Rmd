@@ -417,7 +417,6 @@ print(feature_importances)
 # Create a copy without the excluded variables
 df_gam<-df %>% select(-gender, -gluc, -height)
 
-# Perform a train-test split (80/20)
 set.seed(42) # For reproducibility
 
 # Define the formula for the GAM model
@@ -432,7 +431,7 @@ summary(gam_model)
 # Plot the partial effect of numerical variables
 par(mfrow=c(2, 3))
 plot(gam_model, pages = 1, col = "lightblue", main = "Partial Effect of Numerical Variables")
-plot(gam_model, scale = 0, col = "lightblue", main = "Partial Effect of Numerical Variables") #stesso grafico, diversa ordinata
+# plot(gam_model, scale = 0, col = "lightblue", main = "Partial Effect of Numerical Variables") #stesso grafico, diversa ordinata
 
 # Create partial dependence plots
 pdp_cholesterol <- partial(gam_model, pred.var = "cholesterol", grid.resolution = 100)
