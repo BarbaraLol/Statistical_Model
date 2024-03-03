@@ -267,7 +267,7 @@ vif(no_height)
 
 ```
 
-It seems that all the collinearity is reasoanbly low, so we can proceed with the analysis.
+It seems that all the collinearity is reasonably low, so we can proceed with the analysis.
 
 # Logistic Regression
 
