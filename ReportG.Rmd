@@ -190,7 +190,7 @@ knitr::include_graphics("./categorical_distributions.png")
 According to the distributions, we can see that the difference between the distributions of the height is entirely identical between the two classes, while a difference exists for the other numerical variables. We'll eliminate the height variable from the analysis.  
 For the categorical variables, we can see that the distributions are fairly different for some of the variables, but it's hard to evaluate if the observed differences are given by an actual relationship or just by chance. We'll proceed with the analysis to better understand the relationships between the variables and the target variable, after plotting the correlation matrix.
 
-```{r corr_matrix, eval=FALSE, echo=TRUE}
+```{r corr_matrix, eval=TRUE, echo=TRUE}
 
 knitr::include_graphics("./heat_matrix.png")
 
@@ -267,7 +267,7 @@ vif(no_height)
 
 ```
 
-It seems that all the collinearity is reasonably low, so we can proceed with the analysis.
+It seems that the collinearity is reasonably low, so we can proceed with the analysis.
 
 # Logistic Regression
 
@@ -280,9 +280,6 @@ logi_model <- glm(cardio ~ ., data = df_logi, family = binomial(link = "logit"))
 
 # Summary of the model
 summary(logi_model)
-
-# Compare the model with the null model
-anova(logi_model, test = "Chisq")
 ```
 
 The full model is significantly better than the null model, but some of the variables are not statistically significant, except for glucose, for which the level 1 is not significant while the level 2 is, but it's negatively correlated with the target variable, but the coefficient is negative, which is contrary to known medical research. We therefore hypothesize that the glucose variable has a spurious relationship with the target variable, and we will thus drop it from the model. 
@@ -297,20 +294,14 @@ logi_model_2 <- glm(cardio ~ ., data = df_logi_2, family = binomial(link = "logi
 # Summary of the model
 summary(logi_model_2)
 
-# Compare the model with the null model
-anova(logi_model_2, test = "Chisq")
-
 # Compare the two models
 anova(logi_model, logi_model_2, test = "Chisq")
+
 ```
 
-The second model is significantly better than the null model, and it is also significantly better than the first model.  
-
-
+The second model is significantly better than the null model, and it is also similar to the first model. Given the similarity of the deviance values, the lower complexity and the considerations about gluc variable, we select the nested model.
 
 ## Tree
-
-
 
 ```{r TREE, echo=TRUE}
 
@@ -336,7 +327,7 @@ df_test <- df_tree[-trainIndex, ]
 dt <- rpart(formula = cardio ~ ., 
             data = df_train, 
             method = "class", 
-            control = rpart.control(minsplit = 10,    # Lowered to allow more splits
+            control = rpart.control(minsplit = 10,   # Lowered to allow more splits
                                     minbucket = 10,  # Lowered to allow smaller leaf nodes
                                     maxdepth = 10    # Increased to allow deeper trees
                                     ))
@@ -387,7 +378,7 @@ for (i in 1:nrow(hps)) {
 
 ## Random Forest
 
-```{r FOREST, echo=TRUE}
+```{r FOREST, eval=FALSE, echo=TRUE}
 # Create a copy of the cleaned dataset to use for feature importance
 df_forest <- df_tree
 

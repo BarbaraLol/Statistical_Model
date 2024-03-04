@@ -140,9 +140,6 @@ df_plot <- df
 ## Numerical Variables ##
 #########################
 
-# First, install and load the MASS package
-library(MASS)
-
 # Let's say you have some data in a variable called 'df_plot'
 # This is just an example, replace it with your actual data
 
