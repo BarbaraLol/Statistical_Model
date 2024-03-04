@@ -31,6 +31,10 @@ likelihood_ratio_test <- function(full_model, null_model) {
 }
 
 ```
+# Aim of the project
+The aim of the current project is to build a model to predict cardiac disease using data obtained from medical and demographical information of the patients.  
+
+The first goal is to identify the main predictors to use in medical analysis, while the second one is to build a model to directly try to predict the status of the patient, in order to intervene early with preventive care.
 
 # Import the data
 
@@ -366,6 +370,8 @@ rpart.plot(dt)
 
 ```
 
+The tree shows that the most important predictor by far is the ap_hi, for which a child is directly a terminal node. The second most important predictor seems to be age, together with very high cholesterol levels.
+
 Through cross-validation we found the parameters combinations that resulted in the best accuracy performance: 
 
 ```{r CV, eval=FALSE, echo=TRUE}
@@ -436,11 +442,14 @@ confusionMatrix(y_pred, y_test)
 
 # Get the feature importances
 feature_importances <- importance(rf)
-str(feature_importances)
 print(feature_importances)
 ```
 
-# Logisitc with the most important variable
+The accuracy obtained is 0.73, with a specificity 0.70, a sensitivity of 0.76. These result are pretty disappointing, considering that the performance is about the same as the simple pre-pruned tree.  
+
+We can use the Random Forest Classifier to obtain a ranking of the feature importance:
+
+# Logistic with the most important variable
 
 Let's try using just the most important variable for the logistic regression and see how it compares to the previously selected model:
 ```{r most_important, echo=TRUE, eval=TRUE}
@@ -454,6 +463,8 @@ summary(logi_model_3)
 
 ```
 
+As expected from the correlation matrix, the most important feature is the ap_hi one.
+
 ## Comparison with the previously selected model
 
 ```{r most_important_comparison, echo=TRUE, eval=TRUE}
@@ -461,3 +472,13 @@ anova(logi_model_2, logi_model_3)
 ```
 
 The performance is worse, but the complex model is still much closer to the one variable model than one would expect. Most of the gained precision from the null model is given by the ap_hi feature, confirming the findings of the Random Forest Classifier.
+
+# Results
+
+The results are that the most important predictors are the systolic blood pressure, age and very high levels of cholesterol.  
+
+We have identified a potential bias in glucose levels data, which might be linked to other pathologies.  
+
+The best statistical model is the reduced logistic regression model, because it presents a very similar deviance to the full model but with less complexity.  
+
+The best model for prediction, according to accuracy, complexity metrics and efficiency, is the pre-pruned tree, since it presents the same performance as the more complex and more computationally intensive random forest.
