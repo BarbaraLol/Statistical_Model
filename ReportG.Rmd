@@ -271,6 +271,8 @@ It seems that the collinearity is reasonably low, so we can proceed with the ana
 
 # Logistic Regression
 
+## Full model
+
 ```{r logistic_reg, echo=TRUE}
 # Drop the height column and make a copy
 df_logi <- df %>% select(-height)
@@ -282,7 +284,13 @@ logi_model <- glm(cardio ~ ., data = df_logi, family = binomial(link = "logit"))
 summary(logi_model)
 ```
 
-The full model is significantly better than the null model, but some of the variables are not statistically significant, except for glucose, for which the level 1 is not significant while the level 2 is, but it's negatively correlated with the target variable, but the coefficient is negative, which is contrary to known medical research. We therefore hypothesize that the glucose variable has a spurious relationship with the target variable, and we will thus drop it from the model. 
+The full model is significantly better than the null model, since the null deviance is greater than the residual deviance.  
+Some of the variables are not statistically significant, except for glucose, for which the level 1 is not significant while the level 2 is. However, it's negatively correlated with the target variable, contraddicting current medical knowledge.  
+We therefore hypothesize that glucose has a spurious relationship with the target variable, so we will thus drop it from the model. 
+
+## Nested model
+
+We now fit a logistic model dropping the previously discussed explanatory variables:
 
 ```{r logistic_reg_2, echo=TRUE}
 # Drop the gender1 and the gluc1 columns and make a copy
@@ -293,15 +301,36 @@ logi_model_2 <- glm(cardio ~ ., data = df_logi_2, family = binomial(link = "logi
 
 # Summary of the model
 summary(logi_model_2)
-
-# Compare the two models
-anova(logi_model, logi_model_2, test = "Chisq")
-
 ```
 
-The second model is significantly better than the null model, and it is also similar to the first model. Given the similarity of the deviance values, the lower complexity and the considerations about gluc variable, we select the nested model.
+This model is significantly different than the null one, while every variable is statistically significant.
+
+## Comparison between the full and nested models
+
+```{r comaprison, echo=TRUE, eval=TRUE}
+# Compare the two models
+anova(logi_model, logi_model_2, test = "Chisq")
+```
+
+Given the similarity of the deviance values, the lower complexity and the considerations about the gluc variable, we select the nested model.
 
 ## Tree
+
+### Pre-pruning
+
+We opted for pre-pruning to prevent overfitting. This method is also known as early stopping. 
+It consists in setting stopping criteria as parameter values, allowing the tree to grow until the it meets any of the pre-pruning criteria. 
+
+The tested paramaters are the following: 
+
+* _cp_ or _complexity parameter_, refers to the cost of adding additional variables as splitting nodes
+
+* _min\_bucket_ refers to the minimum number of samples in a terminal (leaf) node
+
+* _max\_depth_ refers to the maximum tree height after which the tree stops growing 
+
+* _min\_split_ refers to the minimum number of samples in a node to attempt a split
+
 
 ```{r TREE, echo=TRUE}
 
@@ -337,7 +366,7 @@ rpart.plot(dt)
 
 ```
 
-We found the values using the following cross validation:
+Through cross-validation we found the parameters combinations that resulted in the best accuracy performance: 
 
 ```{r CV, eval=FALSE, echo=TRUE}
 
@@ -378,7 +407,7 @@ for (i in 1:nrow(hps)) {
 
 ## Random Forest
 
-```{r FOREST, eval=FALSE, echo=TRUE}
+```{r FOREST, eval=TRUE, echo=TRUE}
 # Create a copy of the cleaned dataset to use for feature importance
 df_forest <- df_tree
 
@@ -410,3 +439,25 @@ feature_importances <- importance(rf)
 str(feature_importances)
 print(feature_importances)
 ```
+
+# Logisitc with the most important variable
+
+Let's try using just the most important variable for the logistic regression and see how it compares to the previously selected model:
+```{r most_important, echo=TRUE, eval=TRUE}
+df_logi_3 <- df_tree %>% select(cardio, ap_hi)
+
+# Fit the logistic regression model
+logi_model_3 <- glm(cardio ~ ., data = df_logi_3, family = binomial(link = "logit"))
+
+# Summary of the model
+summary(logi_model_3)
+
+```
+
+## Comparison with the previously selected model
+
+```{r most_important_comparison, echo=TRUE, eval=TRUE}
+anova(logi_model_2, logi_model_3)
+```
+
+The performance is worse, but the complex model is still much closer to the one variable model than one would expect. Most of the gained precision from the null model is given by the ap_hi feature, confirming the findings of the Random Forest Classifier.
